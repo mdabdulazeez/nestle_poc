@@ -1,0 +1,73 @@
+graph TB
+    subgraph USEast["US-East-1 Region"]
+        subgraph VPCPrimary["VPC-Primary"]
+            subgraph EKSPrimary["EKS Cluster Primary"]
+                ArgoCD1["ArgoCD"]
+                Jenkins1["Jenkins LTS"]
+                SonarQube1["SonarQube"]
+                Kyverno1["Kyverno"]
+                Crossplane1["Crossplane"]
+                NGINX1["NGINX Ingress"]
+                EBS1["EBS CSI Driver"]
+            end
+            ECR1["ECR Primary"]
+            RDS1["RDS PostgreSQL<br/>(SonarQube)"]
+        end
+    end
+    
+    subgraph EUWest["EU-West-1 Region"]
+        subgraph VPCSecondary["VPC-Secondary"]
+            subgraph EKSSecondary["EKS Cluster Secondary"]
+                ArgoCD2["ArgoCD"]
+                Apps2["Applications"]
+            end
+            ECR2["ECR Replica"]
+        end
+    end
+    
+    subgraph DevEnv["Development Environment"]
+        Terraform["Terraform"]
+        AWSCLI["AWS CLI"]
+        kubectl["kubectl"]
+        Helm["Helm"]
+        Git["Git Repository"]
+    end
+    
+    subgraph GitOpsRepo["GitOps Repository"]
+        AppManifests["Application<br/>Manifests"]
+        Policies["Security<br/>Policies"]
+        CrossplaneConfigs["Crossplane<br/>Configurations"]
+    end
+    
+    subgraph TerraformBackend["Terraform State Backend"]
+        S3["S3 Bucket"]
+        DynamoDB["DynamoDB<br/>State Lock"]
+    end
+    
+    Developer["DevOps Engineer"] --> Terraform
+    Terraform --> S3
+    Terraform --> DynamoDB
+    Terraform --> EKSPrimary
+    Terraform --> EKSSecondary
+    Terraform --> ECR1
+    Terraform --> ECR2
+    
+    ECR1 -.->|Replication| ECR2
+    
+    ArgoCD1 --> Git
+    ArgoCD2 --> Git
+    Git --> AppManifests
+    Git --> Policies
+    Git --> CrossplaneConfigs
+    
+    Crossplane1 --> RDS1
+    Jenkins1 --> ECR1
+    SonarQube1 --> RDS1
+    
+    Kyverno1 -.->|Enforces| Policies
+    
+    style EKSPrimary fill:#e1f5fe
+    style EKSSecondary fill:#f3e5f5
+    style ECR1 fill:#fff3e0
+    style ECR2 fill:#fff3e0
+    style RDS1 fill:#e8f5e8
