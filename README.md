@@ -57,36 +57,121 @@ git
 ```bash
 git clone <repository-url>
 cd nestle_poc
-cp terraform/environments/dev/terraform.tfvars.example terraform/environments/dev/terraform.tfvars
 ```
 
-### 2. Configure Variables
-Edit `terraform/environments/dev/terraform.tfvars` with your specific values:
-```hcl
+### 2. Setup Terraform Backend (Required First)
+Before deploying the main infrastructure, you need to create the S3 bucket and DynamoDB table for Terraform state management:
+
+```bash
+# Navigate to backend directory
+cd terraform/backend
+
+# Initialize and deploy backend resources
+terraform init
+terraform plan
+terraform apply
+
+# Get the backend configuration values
+terraform output backend_config
+```
+
+**Note**: Save the output values from `terraform output backend_config` as you'll need them in the next step.
+
+### 3. Configure Main Environment Backend
+```bash
+# Navigate to dev environment
+cd ../environments/dev
+
+# Initialize with backend configuration (replace with your actual values from step 2)
+terraform init \
+  -backend-config="bucket=your-s3-bucket-name" \
+  -backend-config="key=dev/terraform.tfstate" \
+  -backend-config="region=us-east-1" \
+  -backend-config="dynamodb_table=your-dynamodb-table-name" \
+  -backend-config="encrypt=true"
+```
+
+**Alternative**: Create a backend config file for easier management:
+```bash
+cat > backend.hcl << EOF
+bucket         = "your-actual-bucket-name"
+key            = "dev/terraform.tfstate"
+region         = "us-east-1"
+dynamodb_table = "your-actual-dynamodb-table-name"
+encrypt        = true
+EOF
+
+# Then initialize with the config file
+terraform init -backend-config=backend.hcl
+```
+
+### 4. Configure Variables (Optional)
+If you need to customize default values, create and edit a terraform.tfvars file:
+```bash
+# Create variables file (optional - defaults are provided)
+cat > terraform.tfvars << EOF
 aws_region_primary   = "us-east-1"
 aws_region_secondary = "eu-west-1"
 cluster_name        = "nestle-poc"
 environment         = "dev"
+EOF
 ```
 
-### 3. Deploy Infrastructure
+### 5. Deploy Infrastructure
 ```bash
-# Initialize and deploy
-cd terraform/environments/dev
-terraform init
+# Plan and apply the infrastructure
 terraform plan
 terraform apply
 ```
 
-### 4. Configure kubectl
+### 6. Configure kubectl
 ```bash
-aws eks update-kubeconfig --region us-east-1 --name nestle-poc-dev
+aws eks update-kubeconfig --region us-east-1 --name nestle-poc-dev-primary
 ```
 
-### 5. Access ArgoCD
+### 7. Access ArgoCD
 ```bash
 kubectl port-forward svc/argocd-server -n argocd 8080:443
 # Initial password: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+```
+
+## Common Issues and Troubleshooting
+
+### Backend Configuration Issues
+
+If you encounter errors like:
+- "Missing region value" during `terraform init`
+- Prompts for bucket name and key during initialization
+- "Error: Missing region value on main.tf line 26, in terraform: backend "s3""
+
+**Solution**: You need to set up the backend infrastructure first. Follow these steps:
+
+1. **Deploy Backend First**: Navigate to `terraform/backend/` and run `terraform init`, `terraform plan`, and `terraform apply`
+2. **Get Backend Values**: Run `terraform output backend_config` to get the S3 bucket and DynamoDB table names
+3. **Initialize Main Environment**: Use the backend configuration values when initializing the main environment
+
+**Example**:
+```bash
+# After backend deployment, you'll get output like:
+# bucket = "nestle-poc-terraform-state-abc12345"
+# dynamodb_table = "nestle-poc-terraform-locks-abc12345"
+
+# Use these values to initialize the main environment:
+cd ../environments/dev
+terraform init \
+  -backend-config="bucket=nestle-poc-terraform-state-abc12345" \
+  -backend-config="key=dev/terraform.tfstate" \
+  -backend-config="region=us-east-1" \
+  -backend-config="dynamodb_table=nestle-poc-terraform-locks-abc12345" \
+  -backend-config="encrypt=true"
+```
+
+### AWS Credentials and Permissions
+
+Ensure your AWS CLI is configured with sufficient permissions:
+```bash
+aws sts get-caller-identity  # Verify your AWS identity
+aws iam list-attached-user-policies --user-name your-username  # Check permissions
 ```
 
 ## Project Structure
