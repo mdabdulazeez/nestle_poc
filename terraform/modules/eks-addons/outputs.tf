@@ -19,7 +19,13 @@ output "argocd_namespace" {
 output "nginx_load_balancer_hostname" {
   description = "NGINX Ingress load balancer hostname"
   value = var.enable_nginx_ingress ? (
-    try(helm_release.nginx_ingress[0].status[0].load_balancer[0].ingress[0].hostname, "pending")
+    try(
+      data.kubernetes_service.nginx_ingress_controller[0].status[0].load_balancer[0].ingress[0].hostname,
+      try(
+        data.kubernetes_service.nginx_ingress_controller[0].status[0].load_balancer[0].ingress[0].ip,
+        "pending"
+      )
+    )
   ) : null
 }
 

@@ -186,6 +186,18 @@ resource "helm_release" "nginx_ingress" {
   }
 }
 
+# Data source to get NGINX Ingress Service Load Balancer info
+data "kubernetes_service" "nginx_ingress_controller" {
+  count = var.enable_nginx_ingress ? 1 : 0
+  
+  metadata {
+    name      = "ingress-nginx-controller"
+    namespace = "ingress-nginx"
+  }
+  
+  depends_on = [helm_release.nginx_ingress]
+}
+
 # ArgoCD
 resource "kubernetes_namespace" "argocd" {
   count = var.enable_argocd ? 1 : 0
