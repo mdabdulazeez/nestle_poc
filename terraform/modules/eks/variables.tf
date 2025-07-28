@@ -74,6 +74,12 @@ variable "node_groups" {
   default = {}
 }
 
+variable "node_group_ssh_key" {
+  description = "EC2 Key Pair name for SSH access to worker nodes"
+  type        = string
+  default     = null
+}
+
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)

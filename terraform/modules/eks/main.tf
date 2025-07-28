@@ -238,10 +238,13 @@ resource "aws_eks_node_group" "main" {
     max_unavailable_percentage = each.value.max_unavailable_percentage
   }
 
-  # Explicitly disable remote access (no SSH access to nodes)
-  # This prevents AWS provider from auto-generating problematic remote_access block
-  lifecycle {
-    ignore_changes = [remote_access]
+  # SSH access configuration for debugging/development
+  dynamic "remote_access" {
+    for_each = var.node_group_ssh_key != null ? [1] : []
+    content {
+      ec2_ssh_key               = var.node_group_ssh_key
+      source_security_group_ids = [aws_security_group.node_group.id]
+    }
   }
 
   # Ensure that IAM Role permissions are created before and deleted after EKS Node Group handling.

@@ -138,6 +138,7 @@ module "eks_primary" {
   public_access_cidrs           = var.public_access_cidrs
   cluster_log_retention_in_days = var.cluster_log_retention_in_days
   node_groups                   = local.node_groups_primary
+  node_group_ssh_key           = var.node_group_ssh_key
   tags                         = local.common_tags
 
   depends_on = [module.vpc_primary]
@@ -180,6 +181,7 @@ module "eks_secondary" {
   public_access_cidrs           = var.public_access_cidrs
   cluster_log_retention_in_days = var.cluster_log_retention_in_days
   node_groups                   = local.node_groups_secondary
+  node_group_ssh_key           = var.node_group_ssh_key
   tags                         = local.common_tags
 
   depends_on = [module.vpc_secondary]
