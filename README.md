@@ -33,6 +33,8 @@ The solution deploys a resilient, secure, and automated Kubernetes platform acro
 - Read-only root filesystem requirements
 - Resource limits enforcement
 - Network policies and security groups
+- SSH key-based node access (optional, managed by Terraform)
+- Encrypted EBS volumes and RDS databases
 
 ## Prerequisites
 
@@ -105,32 +107,89 @@ EOF
 terraform init -backend-config=backend.hcl
 ```
 
-### 4. Configure Variables (Optional)
-If you need to customize default values, create and edit a terraform.tfvars file:
+### 4. Generate SSH Key Pair (Required for Node Access)
+Generate an SSH key pair for accessing EKS worker nodes:
+
 ```bash
-# Create variables file (optional - defaults are provided)
+# Generate new SSH key pair for EKS nodes
+ssh-keygen -t ed25519 -f ~/.ssh/nestle-poc-key -N ""
+
+# Display the public key (you'll need this for next step)
+cat ~/.ssh/nestle-poc-key.pub
+```
+
+**Note**: Keep your private key (`~/.ssh/nestle-poc-key`) secure and never commit it to version control.
+
+### 5. Configure Variables (Required)
+Create a terraform.tfvars file with your SSH public key and any custom values:
+
+```bash
+# Create variables file with SSH public key
 cat > terraform.tfvars << EOF
+# SSH Configuration (Required)
+ssh_public_key = "$(cat ~/.ssh/nestle-poc-key.pub)"
+
+# Optional Customizations (defaults provided)
 aws_region_primary   = "us-east-1"
 aws_region_secondary = "eu-west-1"
-cluster_name        = "nestle-poc"
-environment         = "dev"
+cluster_name         = "nestle-poc"
+environment          = "dev"
 EOF
 ```
 
-### 5. Deploy Infrastructure
+**Alternative**: Manual configuration
+```bash
+# If you prefer to edit manually
+cp terraform.tfvars.example terraform.tfvars
+# Then edit terraform.tfvars and add your SSH public key
+```
+
+### 6. Deploy Infrastructure
 ```bash
 # Plan and apply the infrastructure
 terraform plan
 terraform apply
+
+# View SSH key information
+terraform output ssh_key_pairs
 ```
 
-### 6. Configure kubectl
+### 7. Configure kubectl
 ```bash
 aws eks update-kubeconfig --region us-east-1 --name nestle-poc-dev-primary
 ```
 
-### 7. Access ArgoCD
+### 8. Verify Infrastructure
 ```bash
+# Check cluster status
+kubectl get nodes
+
+# Check system pods
+kubectl get pods -A
+
+# View deployment outputs
+terraform output
+```
+
+### 9. SSH Access to EKS Nodes (Optional)
+With the SSH key configured, you can access EKS worker nodes:
+
+```bash
+# Get node instance information
+aws ec2 describe-instances --region us-east-1 \
+  --filters "Name=tag:Name,Values=*nestle-poc-dev-primary*" \
+  --query 'Reservations[*].Instances[*].{Instance:InstanceId,PublicIP:PublicIpAddress,PrivateIP:PrivateIpAddress,State:State.Name}' \
+  --output table
+
+# SSH to a node (replace IP with actual node IP)
+ssh -i ~/.ssh/nestle-poc-key ec2-user@NODE_IP
+```
+
+### 10. Access ArgoCD (Phase 2)
+**Note**: ArgoCD is deployed in Phase 2. For Phase 1, you have the foundational infrastructure.
+
+```bash
+# After Phase 2 deployment
 kubectl port-forward svc/argocd-server -n argocd 8080:443
 # Initial password: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 ```
@@ -174,6 +233,47 @@ aws sts get-caller-identity  # Verify your AWS identity
 aws iam list-attached-user-policies --user-name your-username  # Check permissions
 ```
 
+### SSH Key Configuration Issues
+
+If you encounter SSH-related errors:
+
+**Problem**: `ec2SshKey in remote-access can't be empty`
+**Solution**: Ensure you've provided a valid SSH public key:
+```bash
+# Generate SSH key if you don't have one
+ssh-keygen -t ed25519 -f ~/.ssh/nestle-poc-key -N ""
+
+# Add to terraform.tfvars
+echo 'ssh_public_key = "'$(cat ~/.ssh/nestle-poc-key.pub)'"' >> terraform.tfvars
+```
+
+**Problem**: SSH connection refused to EKS nodes
+**Solutions**:
+```bash
+# 1. Verify key pair was created
+terraform output ssh_key_pairs
+
+# 2. Check node security groups allow SSH
+aws ec2 describe-security-groups --region us-east-1 --filters "Name=group-name,Values=*nestle-poc*node*"
+
+# 3. Verify you're using correct private key
+ssh -i ~/.ssh/nestle-poc-key ec2-user@NODE_IP
+
+# 4. Check if nodes have public IPs (may need bastion/VPN for private nodes)
+```
+
+**Problem**: SSH key not recognized
+**Solution**: Verify key format and permissions:
+```bash
+# Check key format
+file ~/.ssh/nestle-poc-key
+cat ~/.ssh/nestle-poc-key.pub
+
+# Fix permissions
+chmod 400 ~/.ssh/nestle-poc-key
+chmod 644 ~/.ssh/nestle-poc-key.pub
+```
+
 ## Project Structure
 
 ```
@@ -195,9 +295,12 @@ nestle_poc/
 ## Development Workflow
 
 1. **Infrastructure Changes**: Modify Terraform configurations and apply
-2. **Application Changes**: Update K8s manifests, commit to Git
-3. **Policy Changes**: Update Kyverno policies in k8s-manifests/policies
-4. **ArgoCD Sync**: Automatic or manual sync from Git repository
+2. **SSH Key Management**: Update SSH public key in terraform.tfvars if needed
+3. **Application Changes**: Update K8s manifests, commit to Git
+4. **Policy Changes**: Update Kyverno policies in k8s-manifests/policies
+5. **ArgoCD Sync**: Automatic or manual sync from Git repository
+
+**Note**: SSH keys are managed by Terraform and automatically deployed to both regions.
 
 ## Monitoring and Operations
 
@@ -211,6 +314,8 @@ nestle_poc/
 - Review Kyverno policy violations
 - Monitor EKS cluster health
 - Verify Crossplane resource status
+- Check SSH key pair deployment: `terraform output ssh_key_pairs`
+- Verify node SSH access with security groups and network connectivity
 
 ## Security Considerations
 
@@ -219,6 +324,8 @@ nestle_poc/
 - IRSA for secure AWS service access
 - Network policies for traffic isolation
 - Security policies enforced via Kyverno
+- SSH key pairs managed by Terraform with proper tagging
+- Optional SSH access to EKS nodes (can be disabled by not providing ssh_public_key)
 
 ## Cost Optimization
 

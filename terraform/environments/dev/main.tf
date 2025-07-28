@@ -138,7 +138,7 @@ module "eks_primary" {
   public_access_cidrs           = var.public_access_cidrs
   cluster_log_retention_in_days = var.cluster_log_retention_in_days
   node_groups                   = local.node_groups_primary
-  node_group_ssh_key           = var.node_group_ssh_key
+  node_group_ssh_key           = var.ssh_public_key != null ? aws_key_pair.node_group_key_primary[0].key_name : null
   tags                         = local.common_tags
 
   depends_on = [module.vpc_primary]
@@ -181,7 +181,7 @@ module "eks_secondary" {
   public_access_cidrs           = var.public_access_cidrs
   cluster_log_retention_in_days = var.cluster_log_retention_in_days
   node_groups                   = local.node_groups_secondary
-  node_group_ssh_key           = var.node_group_ssh_key
+  node_group_ssh_key           = var.ssh_public_key != null ? aws_key_pair.node_group_key_secondary[0].key_name : null
   tags                         = local.common_tags
 
   depends_on = [module.vpc_secondary]
@@ -289,6 +289,32 @@ resource "aws_ecr_replication_configuration" "main" {
       }
     }
   }
+}
+
+# EC2 Key Pairs for SSH access to EKS nodes
+resource "aws_key_pair" "node_group_key_primary" {
+  count = var.ssh_public_key != null ? 1 : 0
+  
+  key_name   = "${var.cluster_name}-${var.environment}-primary-key"
+  public_key = var.ssh_public_key
+
+  tags = merge(local.common_tags, {
+    Name = "${var.cluster_name}-${var.environment}-primary-ssh-key"
+    Purpose = "EKS node group SSH access"
+  })
+}
+
+resource "aws_key_pair" "node_group_key_secondary" {
+  provider = aws.secondary
+  count    = var.ssh_public_key != null ? 1 : 0
+  
+  key_name   = "${var.cluster_name}-${var.environment}-secondary-key"
+  public_key = var.ssh_public_key
+
+  tags = merge(local.common_tags, {
+    Name = "${var.cluster_name}-${var.environment}-secondary-ssh-key"
+    Purpose = "EKS node group SSH access"
+  })
 }
 
 # Data source for current AWS account

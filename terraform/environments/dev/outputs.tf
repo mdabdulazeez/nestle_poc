@@ -135,4 +135,15 @@ output "next_steps" {
     Secondary Cluster: ${module.eks_secondary.cluster_endpoint}
     
   EOT
+}
+
+# SSH Key Pair Information
+output "ssh_key_pairs" {
+  description = "Information about SSH key pairs created for EKS nodes"
+  value = var.ssh_public_key != null ? {
+    primary_key_name   = aws_key_pair.node_group_key_primary[0].key_name
+    secondary_key_name = aws_key_pair.node_group_key_secondary[0].key_name
+    primary_region     = var.aws_region_primary
+    secondary_region   = var.aws_region_secondary
+  } : null
 } 

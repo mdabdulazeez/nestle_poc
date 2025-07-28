@@ -107,6 +107,12 @@ variable "node_group_ssh_key" {
   default     = null
 }
 
+variable "ssh_public_key" {
+  description = "SSH public key content for EKS node access"
+  type        = string
+  default     = null
+}
+
 # ECR Configuration
 variable "ecr_repositories" {
   description = "List of ECR repository names to create"
