@@ -218,54 +218,59 @@ resource "aws_ecr_repository" "repositories" {
     encryption_type = "AES256"
   }
 
-  lifecycle_policy {
-    policy = jsonencode({
-      rules = [
-        {
-          rulePriority = 1
-          description  = "Keep last 30 production images"
-          selection = {
-            tagStatus     = "tagged"
-            tagPrefixList = ["prod"]
-            countType     = "imageCountMoreThan"
-            countNumber   = 30
-          }
-          action = {
-            type = "expire"
-          }
-        },
-        {
-          rulePriority = 2
-          description  = "Keep last 10 development images"
-          selection = {
-            tagStatus     = "tagged"
-            tagPrefixList = ["dev", "staging"]
-            countType     = "imageCountMoreThan"
-            countNumber   = 10
-          }
-          action = {
-            type = "expire"
-          }
-        },
-        {
-          rulePriority = 3
-          description  = "Delete untagged images older than 1 day"
-          selection = {
-            tagStatus   = "untagged"
-            countType   = "sinceImagePushed"
-            countUnit   = "days"
-            countNumber = 1
-          }
-          action = {
-            type = "expire"
-          }
-        }
-      ]
-    })
-  }
-
   tags = merge(local.common_tags, {
     Name = each.value
+  })
+}
+
+# ECR Lifecycle Policy
+resource "aws_ecr_lifecycle_policy" "repositories" {
+  for_each = toset(var.ecr_repositories)
+
+  repository = aws_ecr_repository.repositories[each.key].name
+
+  policy = jsonencode({
+    rules = [
+      {
+        rulePriority = 1
+        description  = "Keep last 30 production images"
+        selection = {
+          tagStatus     = "tagged"
+          tagPrefixList = ["prod"]
+          countType     = "imageCountMoreThan"
+          countNumber   = 30
+        }
+        action = {
+          type = "expire"
+        }
+      },
+      {
+        rulePriority = 2
+        description  = "Keep last 10 development images"
+        selection = {
+          tagStatus     = "tagged"
+          tagPrefixList = ["dev", "staging"]
+          countType     = "imageCountMoreThan"
+          countNumber   = 10
+        }
+        action = {
+          type = "expire"
+        }
+      },
+      {
+        rulePriority = 3
+        description  = "Delete untagged images older than 1 day"
+        selection = {
+          tagStatus   = "untagged"
+          countType   = "sinceImagePushed"
+          countUnit   = "days"
+          countNumber = 1
+        }
+        action = {
+          type = "expire"
+        }
+      }
+    ]
   })
 }
 
