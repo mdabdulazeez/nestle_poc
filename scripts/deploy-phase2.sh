@@ -80,7 +80,7 @@ check_prerequisites() {
 get_backend_configuration() {
     print_info "Retrieving backend configuration from Phase 1..."
     
-    local dev_dir="terraform/environments/dev"
+    local dev_dir="~/nestle-poc/terraform/environments/dev"
     
     if [ ! -d "$dev_dir" ]; then
         print_error "Phase 1 directory not found: $dev_dir"
