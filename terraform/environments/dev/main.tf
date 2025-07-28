@@ -284,7 +284,7 @@ resource "aws_ecr_replication_configuration" "main" {
       }
       
       repository_filter {
-        filter      = "*"
+        filter      = "**"
         filter_type = "PREFIX_MATCH"
       }
     }
