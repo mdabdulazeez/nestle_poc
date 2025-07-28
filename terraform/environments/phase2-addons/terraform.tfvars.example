@@ -1,0 +1,64 @@
+# Example Terraform Variables for EKS Add-ons (Phase 2)
+# Copy this file to terraform.tfvars and customize as needed
+
+# Project Configuration
+project_name = "nestle-poc"
+environment  = "dev"
+
+# Backend Configuration (REQUIRED - Get this from Phase 1 output)
+# Run: cd ../dev && terraform output -json | grep s3_bucket_name
+backend_bucket = "your-terraform-state-bucket-name-from-phase1"
+
+# Regional Configuration
+aws_region_primary   = "us-east-1"
+aws_region_secondary = "eu-west-1"
+
+# Add-on Configuration (Enable/Disable)
+enable_ebs_csi_driver     = true
+enable_nginx_ingress      = true
+enable_crossplane         = true
+enable_argocd            = true
+enable_cluster_autoscaler = true
+
+# EBS CSI Driver Configuration
+ebs_csi_driver_version = "v1.24.0"
+
+# NGINX Ingress Configuration
+nginx_ingress_version           = "4.8.3"
+nginx_ingress_load_balancer_type = "nlb"  # Options: nlb, elb
+
+# Crossplane Configuration
+crossplane_version             = "1.14.3"
+crossplane_aws_provider_version = "v0.44.0"
+
+# ArgoCD Configuration
+argocd_version                  = "5.46.8"
+argocd_admin_password          = ""  # Leave empty for auto-generated
+argocd_server_ingress_enabled  = true
+argocd_server_ingress_hostname = "argocd.local"
+
+# ArgoCD Git Repositories (Update with your actual repositories)
+argocd_repositories = [
+  {
+    url  = "https://github.com/your-org/k8s-manifests.git"
+    name = "k8s-manifests"
+    type = "git"
+  },
+  {
+    url  = "https://github.com/your-org/helm-charts.git"
+    name = "helm-charts"
+    type = "git"
+  }
+]
+
+# Cluster Autoscaler Configuration
+cluster_autoscaler_version   = "9.29.0"
+cluster_autoscaler_image_tag = "v1.28.2"  # Should match your Kubernetes version
+
+# Optional: DNS and SSL Configuration
+dns_zone_name = ""  # Set this if you have a Route53 hosted zone
+
+# Optional: cert-manager for automatic SSL
+enable_cert_manager     = false
+cert_manager_version    = "v1.13.2"
+cert_manager_acme_email = "admin@yourdomain.com" 
