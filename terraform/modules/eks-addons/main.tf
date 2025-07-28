@@ -75,6 +75,10 @@ resource "helm_release" "ebs_csi_driver" {
   namespace  = "kube-system"
   version    = var.ebs_csi_driver_version
 
+  timeout          = 300
+  wait             = true
+  wait_for_jobs    = true
+
   set {
     name  = "controller.serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
     value = aws_iam_role.ebs_csi_driver[0].arn
@@ -129,6 +133,9 @@ resource "helm_release" "nginx_ingress" {
   version    = var.nginx_ingress_version
 
   create_namespace = true
+  timeout          = 600
+  wait             = true
+  wait_for_jobs    = true
 
   set {
     name  = "controller.service.type"

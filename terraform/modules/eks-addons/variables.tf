@@ -76,14 +76,14 @@ variable "enable_cluster_autoscaler" {
 variable "ebs_csi_driver_version" {
   description = "Version of the EBS CSI driver to install"
   type        = string
-  default     = "v1.24.0"
+  default     = "2.35.0"
 }
 
 # NGINX Ingress Configuration
 variable "nginx_ingress_version" {
   description = "Version of NGINX Ingress Controller to install"
   type        = string
-  default     = "4.8.3"
+  default     = "4.7.1"
 }
 
 variable "nginx_ingress_load_balancer_type" {
@@ -100,13 +100,13 @@ variable "nginx_ingress_load_balancer_type" {
 variable "crossplane_version" {
   description = "Version of Crossplane to install"
   type        = string
-  default     = "1.14.3"
+  default     = "1.14.5"
 }
 
 variable "crossplane_aws_provider_version" {
   description = "Version of Crossplane AWS Provider to install"
   type        = string
-  default     = "v0.44.0"
+  default     = "v0.47.0"
 }
 
 # ArgoCD Configuration
