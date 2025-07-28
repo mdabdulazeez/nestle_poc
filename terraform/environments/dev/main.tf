@@ -78,7 +78,7 @@ locals {
     }
     
     applications = {
-      instance_types             = ["t3.large", "t3.xlarge"]
+      instance_types             = ["t3.medium"]
       capacity_type              = "SPOT"
       disk_size                  = 50
       desired_size               = 2
@@ -138,7 +138,6 @@ module "eks_primary" {
   public_access_cidrs           = var.public_access_cidrs
   cluster_log_retention_in_days = var.cluster_log_retention_in_days
   node_groups                   = local.node_groups_primary
-  node_group_ssh_key           = var.node_group_ssh_key
   tags                         = local.common_tags
 
   depends_on = [module.vpc_primary]
@@ -181,7 +180,6 @@ module "eks_secondary" {
   public_access_cidrs           = var.public_access_cidrs
   cluster_log_retention_in_days = var.cluster_log_retention_in_days
   node_groups                   = local.node_groups_secondary
-  node_group_ssh_key           = var.node_group_ssh_key
   tags                         = local.common_tags
 
   depends_on = [module.vpc_secondary]

@@ -101,11 +101,8 @@ variable "cluster_log_retention_in_days" {
   default     = 7
 }
 
-variable "node_group_ssh_key" {
-  description = "EC2 Key Pair name for SSH access to worker nodes"
-  type        = string
-  default     = null
-}
+# SSH access to nodes removed for security and simplicity
+# Node management should be done through Kubernetes APIs
 
 # ECR Configuration
 variable "ecr_repositories" {
